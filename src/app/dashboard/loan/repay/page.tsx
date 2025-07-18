@@ -3,8 +3,25 @@
 import { useEffect, useState } from 'react';
 import axios from '@/lib/axios';
 
+// TypeScript interface for a Loan object
+interface Loan {
+  _id: string;
+  user: string;
+  amount: number;
+  reason: string;
+  documents: string[];
+  status: 'pending' | 'approved' | 'rejected' | 'repaid';
+  withdrawn: boolean;
+  repaidAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  repaidAt?: string;
+  purpose?: string;
+  duration?: string;
+}
+
 export default function LoanStatusPage() {
-  const [loans, setLoans] = useState([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -21,7 +38,7 @@ export default function LoanStatusPage() {
     try {
       const res = await axios.put(`/api/loan/repay/${loanId}`);
       setMessage(res.data.message);
-      fetchLoans(); // refresh updated loan list
+      fetchLoans(); // Refresh list after repayment
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to repay loan');
     }
@@ -34,8 +51,9 @@ export default function LoanStatusPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Your Loan Applications</h2>
-      {message && <p className="text-green-600">{message}</p>}
-      {error && <p className="text-red-600">{error}</p>}
+
+      {message && <p className="text-green-600 mb-4">{message}</p>}
+      {error && <p className="text-red-600 mb-4">{error}</p>}
 
       {loans.length === 0 ? (
         <p>No loan applications found.</p>
@@ -53,7 +71,7 @@ export default function LoanStatusPage() {
               </tr>
             </thead>
             <tbody>
-              {loans.map((loan: any) => (
+              {loans.map((loan) => (
                 <tr key={loan._id} className="border-t">
                   <td className="px-4 py-2">Rs. {loan.amount}</td>
                   <td className="px-4 py-2">{loan.purpose || loan.reason}</td>
@@ -71,8 +89,9 @@ export default function LoanStatusPage() {
                         Repay
                       </button>
                     ) : (
-                      <p className="bg-red-600 w-32 text-white px-3 py-1 rounded hover:bg-red-500"
-                      >Not Approved</p>
+                      <span className="bg-gray-300 text-gray-700 px-3 py-1 rounded">
+                        {loan.status === 'repaid' ? 'Repaid' : 'Not Approved'}
+                      </span>
                     )}
                   </td>
                 </tr>

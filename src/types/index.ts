@@ -1,85 +1,71 @@
-import type { Types } from "mongoose"
-
 export interface IUser {
-  _id: Types.ObjectId
+  _id?: string
+  id?: number // For mock data
   name: string
   email: string
-  password?: string // Password might not always be populated
   role: "user" | "admin"
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt?: string
 }
 
 export interface ILoan {
-  _id: Types.ObjectId
-  user: Types.ObjectId | IUser // Can be populated or just ID
+  _id?: string
+  user: IUser | string // Can be populated user object or just user ID
   amount: number
   reason: string
-  documents: string[]
-  status: "pending" | "approved" | "repaid" | "withdrawn" | "rejected"
-  withdrawn: boolean
-  repaidAmount: number
-  repaidAt?: Date
-  createdAt: Date
-  updatedAt: Date
+  documents: string[] // URLs of uploaded documents
+  status: "pending" | "approved" | "rejected" | "repaid"
+  createdAt: string
+  updatedAt?: string
+  repaidAt?: string
+  remainingAmount?: number // For loan repayment tracking
 }
 
 export interface IReply {
-  _id: Types.ObjectId
-  sender: Types.ObjectId | IUser // Can be populated or just ID
+  _id?: string
+  sender: IUser | string // Can be populated user object or just user ID
   message: string
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
 }
 
 export interface ISupport {
-  _id: Types.ObjectId
-  user: Types.ObjectId | IUser // Can be populated or just ID
+  _id?: string
+  user: IUser | string // Can be populated user object or just user ID
   subject: string
   message: string
   status: "open" | "closed"
   replies: IReply[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface IDashboardStatItem {
+  value: string
+  change: string
+  icon: string
+  color: string
+  bgColor: string
 }
 
 export interface IDashboardStats {
-  totalUsers: {
-    value: string
-    change: string
-    icon: string
-    color: string
-    bgColor: string
-  }
-  activeLoans: {
-    value: string
-    change: string
-    icon: string
-    color: string
-    bgColor: string
-  }
-  totalDisbursed: {
-    value: string
-    change: string
-    icon: string
-    color: string
-    bgColor: string
-  }
-  approvalRate: {
-    value: string
-    change: string
-    icon: string
-    color: string
-    bgColor: string
-  }
+  totalUsers: IDashboardStatItem
+  activeLoans: IDashboardStatItem
+  totalDisbursed: IDashboardStatItem
+  approvalRate: IDashboardStatItem
 }
 
 export interface IRecentActivity {
   type: string
-  user: string | null
+  user: string
   amount: string | null
   time: string
   icon: string
   color: string
-  description?: string
+}
+
+export interface IJwtPayload {
+  userId: string
+  role: string
+  iat: number
+  exp: number
 }

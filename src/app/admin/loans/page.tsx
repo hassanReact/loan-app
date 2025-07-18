@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import axios from "@/lib/axios"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,32 +21,73 @@ import {
   AlertCircle,
   Eye,
 } from "lucide-react"
-import Link from "next/link" // Import Link
+import Link from "next/link"
+
+interface User {
+  _id: string
+  name: string
+  email: string
+}
+
+interface Loan {
+  _id: string
+  user: User
+  amount: number
+  reason: string
+  documents: string[]
+  status: "repaid" | "approved" | "pending" | "rejected" // Added all possible statuses
+  withdrawn: boolean
+  repaidAmount: number
+  createdAt: string
+  updatedAt: string
+  __v: number
+  repaidAt?: string // Optional, as it might not always be present
+}
+
 
 export default function AdminLoansPage() {
-  const [loans, setLoans] = useState([])
+  const [loans, setLoans] = useState<Loan[]>([]) // Use Loan[] for the state
   const [status, setStatus] = useState("all")
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState<string | null>(null) // To track loading state for approve/reject actions
 
-  const fetchLoans = async () => {
+  const fetchLoans = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (status !== "all") params.append("status", status)
       if (query) params.append("query", query)
       const res = await axios.get(`/api/admin/loans?${params.toString()}`)
+      console.log(res.data.loans)
       setLoans(res.data.loans)
-    } catch (err) {
-      console.error("Error fetching loans:", err)
+    } catch (err: unknown) {
+      console.error("Error fetching loans:", (err as Error).message)
     } finally {
       setLoading(false)
+    }
+  }, [status, query])
+
+  const handleStatusUpdate = async (loanId: string, newStatus: "approved" | "rejected") => {
+    setActionLoading(loanId) // Set loading for this specific loan
+    try {
+      const res = await axios.put(`/api/admin/loans/${loanId}`, { status: newStatus })
+      if (res.data.success) {
+        // Update the loan in the local state or re-fetch all loans
+        fetchLoans()
+      } else {
+        console.error("Failed to update loan status:", res.data.message)
+      }
+    } catch (err: unknown) {
+      console.error("Error updating loan status:", (err as Error).message)
+    } finally {
+      setActionLoading(null) // Clear loading state
     }
   }
 
   useEffect(() => {
     fetchLoans()
-  }, [status])
+  }, [fetchLoans])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -87,7 +128,6 @@ export default function AdminLoansPage() {
             <p className="text-gray-600 dark:text-gray-400">Manage and review all loan applications</p>
           </div>
         </div>
-
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -163,71 +203,82 @@ export default function AdminLoansPage() {
 
       {/* Loans Grid */}
       <div className="grid gap-6">
-        {loans.map((loan: any) => (
-          <Card
-            key={loan._id}
-            className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-xl transition-shadow"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4">
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        {loans.map(
+          (
+            loan: Loan, // Explicitly type loan as Loan
+          ) => (
+            <Card
+              key={loan._id} // Use loan._id as key for better performance and stability
+              className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-xl transition-shadow"
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                      <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{loan.user.name}</h3>
+                        <Badge className={`${getStatusColor(loan.status)} flex items-center space-x-1`}>
+                          {getStatusIcon(loan.status)}
+                          <span className="capitalize">{loan.status}</span>
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="flex items-center space-x-1">
+                          <User className="h-4 w-4" />
+                          <span>{loan.user.email}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <DollarSign className="h-4 w-4" />
+                          <span>£ {loan.amount?.toLocaleString()}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>{new Date(loan.createdAt).toLocaleDateString()}</span>
+                        </span>
+                      </div>
+                      {loan.reason && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
+                          <strong>Purpose:</strong> {loan.reason}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {loan.user?.name || "Unknown User"}
-                      </h3>
-                      <Badge className={`${getStatusColor(loan.status)} flex items-center space-x-1`}>
-                        {getStatusIcon(loan.status)}
-                        <span className="capitalize">{loan.status}</span>
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                      <span className="flex items-center space-x-1">
-                        <User className="h-4 w-4" />
-                        <span>{loan.user?.email || "No email"}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <DollarSign className="h-4 w-4" />
-                        <span>£ {loan.amount?.toLocaleString()}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{new Date(loan.createdAt).toLocaleDateString()}</span>
-                      </span>
-                    </div>
-                    {loan.reason && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
-                        <strong>Purpose:</strong> {loan.reason}
-                      </p>
+                  <div className="flex space-x-2">
+                    {loan.status === "pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleStatusUpdate(loan._id, "approved")}
+                          disabled={actionLoading === loan._id}
+                        >
+                          {actionLoading === loan._id ? "Approving..." : "Approve"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleStatusUpdate(loan._id, "rejected")}
+                          disabled={actionLoading === loan._id}
+                        >
+                          {actionLoading === loan._id ? "Rejecting..." : "Reject"}
+                        </Button>
+                      </>
                     )}
-                    {/* Documents Section - Removed direct display, now on detail page */}
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/admin/loans/${loan._id}`} className="cursor-pointer">
+                        View Details
+                        <Eye className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  {loan.status === "pending" && (
-                    <>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="destructive">
-                        Reject
-                      </Button>
-                    </>
-                  )}
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/admin/loans/${loan._id}`} className="cursor-pointer">
-                      View Details
-                      <Eye className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ),
+        )}
       </div>
 
       {loans.length === 0 && !loading && (

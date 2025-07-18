@@ -22,10 +22,32 @@ import {
   Mail,
 } from "lucide-react"
 import { DocumentViewerModal } from "@/app/components/Document-Viewer-Model"
+import { isAxiosError } from "axios"
+
+interface User {
+  _id: string
+  name: string
+  email: string
+}
+
+interface Loan {
+  _id: string
+  user: User
+  amount: number
+  reason: string
+  documents: string[]
+  status: "repaid" | "approved" | "pending" | "rejected"
+  withdrawn: boolean
+  repaidAmount: number
+  createdAt: string
+  updatedAt: string
+  __v: number
+  repaidAt?: string
+}
 
 export default function AdminLoanDetailPage() {
   const { id } = useParams()
-  const [loan, setLoan] = useState<any>(null)
+  const [loan, setLoan] = useState<Loan | null>(null) // Use Loan | null for the state
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -36,22 +58,28 @@ export default function AdminLoanDetailPage() {
       try {
         const res = await axios.get(`/api/admin/loans/${id}`)
         if (res.data.success) {
+          console.log(res.data.loan)
           setLoan(res.data.loan)
         } else {
           setError(res.data.message || "Failed to load loan details")
         }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load loan details")
+      } catch (err: unknown) {
+        // Type 'unknown' is safer than 'any'
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || "Failed to load loan details")
+        } else if (err instanceof Error) {
+          setError(err.message || "Failed to load loan details")
+        } else {
+          setError("An unexpected error occurred")
+        }
       } finally {
         setLoading(false)
       }
     }
-
     if (id) {
       fetchLoan()
     }
   }, [id])
-
   const handleDocumentClick = (url: string) => {
     setSelectedDocumentUrl(url)
     setIsModalOpen(true)
@@ -98,7 +126,6 @@ export default function AdminLoanDetailPage() {
             </Link>
           </Button>
         </div>
-
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -130,7 +157,6 @@ export default function AdminLoanDetailPage() {
             </Link>
           </Button>
         </div>
-
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="p-12 text-center">
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
@@ -145,7 +171,7 @@ export default function AdminLoanDetailPage() {
     )
   }
 
-  if (!loan) return null
+  if (!loan) return null // Ensure loan is not null before rendering details
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">

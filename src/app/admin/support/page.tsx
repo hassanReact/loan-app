@@ -9,10 +9,41 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { HelpCircle, MessageSquare, Calendar, User, Mail, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { ISupport } from "@/types"
+import { isAxiosError } from "axios"
+
+interface User {
+  _id: string
+  name: string
+  email: string
+  password?: string // Password might not always be returned or should be handled securely
+  role: "user" | "admin"
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
+interface Reply {
+  sender: string // This could be a User ID or a full User object depending on API
+  message: string
+  _id: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface SupportTicket {
+  _id: string
+  user: User
+  subject: string
+  message: string
+  status: "open" | "closed" | "pending" // Added common statuses
+  replies: Reply[]
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
 
 export default function AdminSupportPage() {
-  const [tickets, setTickets] = useState<ISupport[]>([])
+  const [tickets, setTickets] = useState<SupportTicket[]>([]) // Use SupportTicket[] for the state
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -20,14 +51,21 @@ export default function AdminSupportPage() {
     const fetchTickets = async () => {
       try {
         const res = await axios.get("/api/admin/support")
+        console.log(res.data.tickets)
         setTickets(res.data.tickets)
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load support tickets")
+      } catch (err: unknown) {
+        // Type 'unknown' is safer than 'any'
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || "Failed to load support tickets")
+        } else if (err instanceof Error) {
+          setError(err.message || "Failed to load support tickets")
+        } else {
+          setError("An unexpected error occurred while loading support tickets")
+        }
       } finally {
         setLoading(false)
       }
     }
-
     fetchTickets()
   }, [])
 
@@ -40,7 +78,6 @@ export default function AdminSupportPage() {
             <p className="text-gray-600 dark:text-gray-400">Manage customer support requests</p>
           </div>
         </div>
-
         <div className="grid gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <Card key={i} className="border-0 shadow-lg">
@@ -71,7 +108,6 @@ export default function AdminSupportPage() {
             <p className="text-gray-600 dark:text-gray-400">Manage customer support requests</p>
           </div>
         </div>
-
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="p-12 text-center">
             <HelpCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
@@ -108,7 +144,7 @@ export default function AdminSupportPage() {
         </Card>
       ) : (
         <div className="grid gap-6">
-          {tickets.map((ticket: ISupport) => (
+          {tickets.map((ticket: SupportTicket) => (
             <Card
               key={ticket._id}
               className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-xl transition-shadow"
@@ -128,7 +164,8 @@ export default function AdminSupportPage() {
                           variant="outline"
                           className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                         >
-                          Open
+                          {/* Dynamically display status from ticket object */}
+                          <span className="capitalize">{ticket.status}</span>
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
@@ -171,3 +208,4 @@ export default function AdminSupportPage() {
     </div>
   )
 }
+

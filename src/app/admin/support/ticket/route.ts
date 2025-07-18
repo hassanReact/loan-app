@@ -1,10 +1,10 @@
 import { connectDB } from "@/lib/db"
 import { cookies } from "next/headers"
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
 import { Support } from "@/models/Support"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDB()
 

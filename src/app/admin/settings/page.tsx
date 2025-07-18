@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -33,6 +32,7 @@ import {
   FileText,
   Zap,
 } from "lucide-react"
+import { isAxiosError } from "axios" // Import isAxiosError
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(false)
@@ -49,7 +49,6 @@ export default function AdminSettingsPage() {
     currency: "USD",
     maintenanceMode: false,
   })
-
   // Loan Settings State
   const [loanSettings, setLoanSettings] = useState({
     minLoanAmount: 1000,
@@ -61,7 +60,6 @@ export default function AdminSettingsPage() {
     requireDocuments: 5,
     approvalTimeframe: 24,
   })
-
   // User Settings State
   const [userSettings, setUserSettings] = useState({
     allowRegistration: true,
@@ -71,7 +69,6 @@ export default function AdminSettingsPage() {
     maxLoginAttempts: 5,
     accountLockoutTime: 15,
   })
-
   // Notification Settings State
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
@@ -82,7 +79,6 @@ export default function AdminSettingsPage() {
     paymentReminders: true,
     marketingEmails: false,
   })
-
   // Security Settings State
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorAuth: false,
@@ -92,7 +88,6 @@ export default function AdminSettingsPage() {
     dataRetention: 7,
     backupFrequency: "daily",
   })
-
   // System Settings State
   const [systemSettings, setSystemSettings] = useState({
     apiRateLimit: 1000,
@@ -107,17 +102,21 @@ export default function AdminSettingsPage() {
     setLoading(true)
     setMessage("")
     setError("")
-
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
-
       // Here you would make actual API calls to save settings
       // await axios.put(`/api/admin/settings/${section}`, settingsData)
-
       setMessage(`${section} settings saved successfully!`)
-    } catch (_err: any) {
-      setError(`Failed to save ${section} settings`)
+    } catch (err: unknown) {
+      // Type 'unknown' is safer than 'any'
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || `Failed to save ${section} settings`)
+      } else if (err instanceof Error) {
+        setError(err.message || `Failed to save ${section} settings`)
+      } else {
+        setError(`An unexpected error occurred while saving ${section} settings`)
+      }
     } finally {
       setLoading(false)
     }
@@ -126,13 +125,13 @@ export default function AdminSettingsPage() {
   const SettingsCard = ({
     title,
     description,
-    icon: Icon,
+    icon: Icon, // Renamed to Icon to follow React component naming convention
     children,
     onSave,
   }: {
     title: string
     description: string
-    icon: any
+    icon: React.ElementType // Use React.ElementType for component type
     children: React.ReactNode
     onSave: () => void
   }) => (
@@ -185,7 +184,6 @@ export default function AdminSettingsPage() {
           <AlertDescription className="text-green-800 dark:text-green-200">{message}</AlertDescription>
         </Alert>
       )}
-
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -451,9 +449,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               </div>
-
               <Separator />
-
               <div className="space-y-4">
                 <h4 className="text-lg font-medium">User Registration Settings</h4>
                 <div className="space-y-4">
@@ -471,7 +467,6 @@ export default function AdminSettingsPage() {
                       onCheckedChange={(checked) => setUserSettings({ ...userSettings, allowRegistration: checked })}
                     />
                   </div>
-
                   <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Mail className="h-5 w-5 text-green-600" />
@@ -524,7 +519,6 @@ export default function AdminSettingsPage() {
                       }
                     />
                   </div>
-
                   <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Bell className="h-5 w-5 text-green-600" />
@@ -545,9 +539,7 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
               </div>
-
               <Separator />
-
               <div className="space-y-4">
                 <h4 className="text-lg font-medium">Notification Types</h4>
                 <div className="grid gap-4">
@@ -567,7 +559,6 @@ export default function AdminSettingsPage() {
                       }
                     />
                   </div>
-
                   <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <FileText className="h-5 w-5 text-yellow-600" />
@@ -586,7 +577,6 @@ export default function AdminSettingsPage() {
                       }
                     />
                   </div>
-
                   <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Clock className="h-5 w-5 text-orange-600" />
@@ -664,7 +654,6 @@ export default function AdminSettingsPage() {
                   </Select>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="ipWhitelist">IP Whitelist (comma-separated)</Label>
                 <Textarea
@@ -675,9 +664,7 @@ export default function AdminSettingsPage() {
                   rows={3}
                 />
               </div>
-
               <Separator />
-
               <div className="space-y-4">
                 <h4 className="text-lg font-medium">Security Features</h4>
                 <div className="grid gap-4">
@@ -697,7 +684,6 @@ export default function AdminSettingsPage() {
                       }
                     />
                   </div>
-
                   <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Database className="h-5 w-5 text-blue-600" />
@@ -773,7 +759,6 @@ export default function AdminSettingsPage() {
                   </Select>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="allowedFileTypes">Allowed File Types (comma-separated)</Label>
                 <Input
@@ -783,9 +768,7 @@ export default function AdminSettingsPage() {
                   onChange={(e) => setSystemSettings({ ...systemSettings, allowedFileTypes: e.target.value })}
                 />
               </div>
-
               <Separator />
-
               <div className="space-y-4">
                 <h4 className="text-lg font-medium">Development Settings</h4>
                 <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">

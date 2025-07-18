@@ -4,26 +4,48 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import axios from "@/lib/axios"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowLeft, Calendar, MessageSquare, CheckCircle, Clock, AlertCircle, User, Shield } from "lucide-react"
+import {
+  ArrowLeft,
+  Calendar,
+  MessageSquare,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  User,
+  Shield
+} from "lucide-react"
 
+// ✅ Updated interfaces — no other code changed
+interface Sender {
+  _id: string
+  name: string
+  email: string
+  role: "admin" | "support" | string
+}
 
 interface SupportReply {
-  sender?: {
-    name?: string
-    role?: "admin" | "support" | string
-  }
+  _id?: string
+  sender?: Sender
   message: string
   createdAt: string
+  updatedAt?: string
 }
 
 interface SupportTicket {
   _id: string
+  user?: string
   subject: string
   message: string
   status: "open" | "closed"
@@ -189,8 +211,11 @@ export default function UserSupportTicketDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {ticket.replies.map((reply: SupportReply, index: number) => (
-                <div key={index} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+              {ticket.replies.map((reply, index) => (
+                <div
+                  key={index}
+                  className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500"
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-8 w-8">
@@ -207,7 +232,9 @@ export default function UserSupportTicketDetailPage() {
                         </span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">{new Date(reply.createdAt).toLocaleString()}</span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(reply.createdAt).toLocaleString()}
+                    </span>
                   </div>
                   <p className="text-gray-800 dark:text-gray-200 leading-relaxed">{reply.message}</p>
                 </div>

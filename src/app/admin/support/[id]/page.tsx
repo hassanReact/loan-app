@@ -12,64 +12,98 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Send, User, Mail, Calendar, MessageSquare, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { isAxiosError } from "axios"
+
+interface User {
+  _id: string
+  name: string
+  email: string
+  password?: string
+  role: "user" | "admin"
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
+interface Reply {
+  sender: string // This could be a User ID or a full User object depending on API
+  message: string
+  _id: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface SupportTicket {
+  _id: string
+  user: User
+  subject: string
+  message: string
+  status: "open" | "closed" | "pending"
+  replies: Reply[]
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
 
 export default function AdminSupportReplyPage() {
   const { id } = useParams()
-  const [ticket, setTicket] = useState<any>(null)
+  const [ticket, setTicket] = useState<SupportTicket | null>(null) // Use SupportTicket | null for the state
   const [loading, setLoading] = useState(true)
   const [reply, setReply] = useState("")
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
-  const [replyError, setReplyError] = useState("")
 
   useEffect(() => {
     const fetchTicket = async () => {
       try {
         const res = await axios.get(`/api/admin/support/${id}`)
-        if (res.data.success) {
-          setTicket(res.data.ticket)
+        console.log(res.data.ticket)
+        setTicket(res.data.ticket)
+      } catch (err: unknown) {
+        // Type 'unknown' is safer than 'any'
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || "Failed to load ticket")
+        } else if (err instanceof Error) {
+          setError(err.message || "Failed to load ticket")
         } else {
-          setError(res.data.message || "Failed to load ticket")
+          setError("An unexpected error occurred while loading the ticket")
         }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load ticket")
       } finally {
         setLoading(false)
       }
     }
-
     if (id) {
       fetchTicket()
     }
   }, [id])
 
   const handleReply = async () => {
-    setReplyError("")
-    if (!reply.trim()) {
-      setReplyError("Reply message cannot be empty.")
-      return
-    }
-
+    if (!reply.trim()) return
     setSending(true)
     setMessage("")
     setError("")
-
     try {
       const res = await axios.post(`/api/admin/support/${id}/reply`, { message: reply })
-      if (res.data.success) {
-        // Fix: Safely handle replies array
-        setTicket((prev: any) => ({
+      setTicket((prev: SupportTicket | null) => {
+        if (!prev) return null
+        return {
           ...prev,
-          replies: [...(prev.replies || []), res.data.reply],
-        }))
-        setReply("")
-        setMessage("Reply sent successfully")
+          replies: [...(prev.replies || []), res.data.ticket.replies.at(-1)],
+        }
+      })
+      setReply("")
+      setMessage("Reply sent successfully")
+    } catch (err: unknown) {
+      // Type 'unknown' is safer than 'any'
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to send reply")
+      } else if (err instanceof Error) {
+        setError(err.message || "Failed to send reply")
       } else {
-        setError(res.data.message || "Failed to send reply")
+        setError("An unexpected error occurred while sending the reply")
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to send reply")
     } finally {
       setSending(false)
     }
@@ -86,7 +120,6 @@ export default function AdminSupportReplyPage() {
             </Link>
           </Button>
         </div>
-
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -116,7 +149,6 @@ export default function AdminSupportReplyPage() {
             </Link>
           </Button>
         </div>
-
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="p-12 text-center">
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
@@ -131,7 +163,7 @@ export default function AdminSupportReplyPage() {
     )
   }
 
-  if (!ticket) return null
+  if (!ticket) return null // Ensure ticket is not null before rendering details
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -142,8 +174,11 @@ export default function AdminSupportReplyPage() {
             Back to Tickets
           </Link>
         </Button>
-        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-          {ticket.status === "open" ? "Open Ticket" : "Closed Ticket"}
+        <Badge
+          variant="outline"
+          className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 capitalize"
+        >
+          {ticket.status} Ticket
         </Badge>
       </div>
 
@@ -183,7 +218,7 @@ export default function AdminSupportReplyPage() {
       </Card>
 
       {/* Replies */}
-      {ticket.replies && Array.isArray(ticket.replies) && ticket.replies.length > 0 && (
+      {ticket.replies && ticket.replies.length > 0 && (
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -193,12 +228,10 @@ export default function AdminSupportReplyPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {ticket.replies.map((r: any, i: number) => (
-                <div key={i} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+              {ticket.replies.map((r: Reply) => (
+                <div key={r._id} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      {r.sender?.name || "Admin"} Reply
-                    </span>
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Admin Reply</span>
                     <span className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</span>
                   </div>
                   <p className="text-gray-800 dark:text-gray-200">{r.message}</p>
@@ -213,7 +246,7 @@ export default function AdminSupportReplyPage() {
       <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Send Reply</CardTitle>
-          <CardDescription>Respond to the customer's support request</CardDescription>
+          <CardDescription>Respond to the customer&apos;s support request</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -223,14 +256,12 @@ export default function AdminSupportReplyPage() {
                 <AlertDescription className="text-green-800 dark:text-green-200">{message}</AlertDescription>
               </Alert>
             )}
-
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
             <Textarea
               value={reply}
               onChange={(e) => setReply(e.target.value)}
@@ -238,8 +269,6 @@ export default function AdminSupportReplyPage() {
               placeholder="Type your reply here..."
               className="resize-none"
             />
-            {replyError && <p className="text-sm text-red-500 mt-1">{replyError}</p>}
-
             <Button onClick={handleReply} disabled={!reply.trim() || sending} className="w-full sm:w-auto">
               {sending ? (
                 <>

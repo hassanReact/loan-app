@@ -71,5 +71,4 @@ export const config = {
     '/api/loan/:path*',
     '/api/admin/:path*',
   ],
-    runtime: 'nodejs',
 };

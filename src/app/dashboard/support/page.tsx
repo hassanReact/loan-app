@@ -20,41 +20,16 @@ export default function SupportPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
-  const [subjectError, setSubjectError] = useState("")
-  const [messageError, setMessageError] = useState("")
-
-  const validateForm = () => {
-    let isValid = true
-    setSubjectError("")
-    setMessageError("")
-
-    if (!subject.trim()) {
-      setSubjectError("Subject is required.")
-      isValid = false
-    }
-
-    if (!message.trim()) {
-      setMessageError("Message is required.")
-      isValid = false
-    }
-
-    return isValid
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
     setError("")
     setSuccess("")
 
-    if (!validateForm()) {
-      return
-    }
-
-    setLoading(true)
-
     try {
       const res = await axios.post("/api/support/create", { subject, message })
-      if (res.data.success) {
+      if (res.data) {
         setSuccess("Support request submitted successfully! We'll get back to you soon.")
         setSubject("")
         setMessage("")
@@ -104,7 +79,7 @@ export default function SupportPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Check the status of your tickets and view responses from our support team.
             </p>
-            <Button asChild variant="outline" className="w-full bg-transparent cursor-pointer">
+            <Button asChild variant="outline" className="w-full bg-transparent">
               <Link href="/dashboard/support/tickets">
                 <Eye className="mr-2 h-4 w-4" />
                 View My Tickets
@@ -147,7 +122,6 @@ export default function SupportPage() {
                 onChange={(e) => setSubject(e.target.value)}
                 required
               />
-              {subjectError && <p className="text-sm text-red-500 mt-1">{subjectError}</p>}
             </div>
 
             <div className="space-y-2">
@@ -159,7 +133,6 @@ export default function SupportPage() {
                 required
                 rows={6}
               />
-              {messageError && <p className="text-sm text-red-500 mt-1">{messageError}</p>}
             </div>
 
             <Button type="submit" disabled={loading} className="w-full" size="lg">

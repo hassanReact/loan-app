@@ -10,8 +10,35 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HelpCircle, MessageSquare, Calendar, Plus, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react"
 
+interface Sender {
+  _id: string
+  name: string
+  email: string
+  role: string
+}
+
+interface Reply {
+  _id: string
+  sender: Sender
+  message: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface Ticket {
+  _id: string
+  user: string
+  subject: string
+  message: string
+  status: 'open' | 'closed'
+  replies: Reply[]
+  createdAt: string
+  updatedAt: string
+}
+
+
 export default function UserSupportTicketsPage() {
-  const [tickets, setTickets] = useState<any[]>([])
+const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -20,6 +47,7 @@ export default function UserSupportTicketsPage() {
       try {
         const res = await axios.get("/api/support/tickets")
         if (res.data.success) {
+          console.log(res.data.tickets)
           setTickets(res.data.tickets)
         } else {
           setError(res.data.message || "Failed to load tickets")

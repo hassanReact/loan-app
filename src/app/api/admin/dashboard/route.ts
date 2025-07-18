@@ -1,8 +1,17 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { connectDB } from "@/lib/db"
 import { User, Loan, Support } from "@/models"
 
-export async function GET(request: NextRequest) {
+interface RecentActivityItem {
+  type: "new_user" | "loan_approved" | "loan_pending" | "support_ticket"
+  user: string
+  amount: string | null
+  time: string
+  icon: keyof typeof import("lucide-react") // Use keyof typeof to correctly type Lucide icons
+  color: string
+}
+
+export async function GET() {
   try {
     await connectDB()
 
@@ -82,13 +91,11 @@ export async function GET(request: NextRequest) {
 
     // Get recent activity (last 10 activities)
     const recentLoans = await Loan.find().populate("user", "name email").sort({ createdAt: -1 }).limit(5)
-
     const recentUsers = await User.find({ role: "user" }).sort({ createdAt: -1 }).limit(3)
-
     const recentSupport = await Support.find().populate("user", "name email").sort({ createdAt: -1 }).limit(2)
 
     // Format recent activity
-    const recentActivity: { type: string; user: any; amount: string | null; time: string; icon: string; color: string }[] = []
+    const recentActivity: RecentActivityItem[] = [] // Use the imported interface
 
     // Add loan activities
     recentLoans.forEach((loan) => {

@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import axios from "@/lib/axios"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+
 import {
   CreditCard,
   FileText,
@@ -17,6 +20,7 @@ import {
   CheckCircle,
   ArrowRight,
   XCircle,
+  LucideIcon,
 } from "lucide-react"
 
 const quickActions = [
@@ -51,7 +55,8 @@ const quickActions = [
   },
 ]
 
-const iconMap = {
+// Icon mapping
+const iconMap: Record<string, LucideIcon> = {
   TrendingUp,
   Clock,
   CheckCircle,
@@ -59,8 +64,29 @@ const iconMap = {
   FileText,
 }
 
+interface DashboardResponse {
+  success: boolean
+  user: {
+    name: string
+    email: string
+  }
+  stats: {
+    title: string
+    value: string
+    icon: keyof typeof iconMap
+    color: string
+  }[]
+  recentActivity: {
+    type: string
+    description: string
+    time: string
+    icon: keyof typeof iconMap
+    color: string
+  }[]
+}
+
 export default function DashboardHome() {
-  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -117,7 +143,7 @@ export default function DashboardHome() {
     )
   }
 
-  const { user, stats, recentActivity } = dashboardData
+  const { user, stats, recentActivity } = dashboardData!
 
   return (
     <div className="space-y-8">
@@ -129,8 +155,8 @@ export default function DashboardHome() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat: any, index: number) => {
-          const IconComponent = iconMap[stat.icon as keyof typeof iconMap]
+        {stats.map((stat, index) => {
+          const IconComponent = iconMap[stat.icon] || HelpCircle
           return (
             <Card key={index} className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
               <CardContent className="p-6">
@@ -194,8 +220,8 @@ export default function DashboardHome() {
         <CardContent>
           <div className="space-y-4">
             {recentActivity.length > 0 ? (
-              recentActivity.map((activity: any, index: number) => {
-                const IconComponent = iconMap[activity.icon as keyof typeof iconMap]
+              recentActivity.map((activity, index) => {
+                const IconComponent = iconMap[activity.icon] || HelpCircle
                 return (
                   <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
                     <div className={`p-2 rounded-full bg-gray-100 dark:bg-slate-600 ${activity.color}`}>

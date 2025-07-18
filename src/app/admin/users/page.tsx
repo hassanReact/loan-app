@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import axios from "@/lib/axios"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,41 +9,56 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Users, Search, Filter, Mail, Calendar, Shield, User } from "lucide-react"
+import { Users, Search, Filter, Mail, Calendar, Shield, UserIcon } from "lucide-react" // Renamed User to UserIcon to avoid conflict
+
+interface User {
+  _id: string
+  name: string
+  email: string
+  password?: string // Password might not always be returned or should be handled securely
+  role: "user" | "admin"
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<User[]>([]) // Use User[] for the state
   const [query, setQuery] = useState("")
-  const [role, setRole] = useState("all") // Updated default value to 'all'
+  const [role, setRole] = useState("all")
   const [loading, setLoading] = useState(true)
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    // Wrap fetchUsers in useCallback
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (query) params.append("query", query)
-      if (role !== "all") params.append("role", role) // Updated condition to exclude 'all' role
+      if (role !== "all") params.append("role", role)
       const res = await axios.get(`/api/admin/user?${params.toString()}`)
+      console.log(res.data.users)
       setUsers(res.data.users)
-    } catch (err) {
-      console.error("Error fetching users:", err)
+    } catch (err: unknown) {
+      // Use unknown for error type
+      console.error("Error fetching users:", (err as Error).message) // Type assertion for error message
     } finally {
       setLoading(false)
     }
-  }
+  }, [query, role]) // Dependencies for useCallback
 
   useEffect(() => {
     fetchUsers()
-  }, [role])
+  }, [fetchUsers]) // Now fetchUsers is a stable dependency
 
-  const getRoleColor = (role: string) => {
-    return role === "admin"
+  const getRoleColor = (userRole: string) => {
+    return userRole === "admin"
       ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
       : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
   }
 
-  const getRoleIcon = (role: string) => {
-    return role === "admin" ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />
+  const getRoleIcon = (userRole: string) => {
+    return userRole === "admin" ? <Shield className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />
   }
 
   if (loading) {
@@ -55,7 +70,6 @@ export default function AdminUsersPage() {
             <p className="text-gray-600 dark:text-gray-400">Manage all registered users</p>
           </div>
         </div>
-
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -114,7 +128,7 @@ export default function AdminUsersPage() {
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem> {/* Updated value prop */}
+                <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="user">User</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
@@ -129,7 +143,7 @@ export default function AdminUsersPage() {
 
       {/* Users Grid */}
       <div className="grid gap-4">
-        {users.map((user: any) => (
+        {users.map((user: User) => (
           <Card
             key={user._id}
             className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-xl transition-shadow"
@@ -162,8 +176,7 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                </div>
+                <div className="flex space-x-2">{/* Add action buttons here if needed, e.g., Edit, Delete */}</div>
               </div>
             </CardContent>
           </Card>

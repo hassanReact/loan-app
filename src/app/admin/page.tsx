@@ -16,6 +16,36 @@ import {
   HelpCircle,
   Settings,
 } from "lucide-react"
+import { isAxiosError } from "axios"
+
+interface Stat {
+  value: string
+  change: string
+  icon: keyof typeof import("lucide-react") // Use keyof typeof to correctly type Lucide icons
+  color: string
+  bgColor: string
+}
+
+interface RecentActivityItem {
+  type: "new_user" | "loan_approved" | "loan_pending" | "support_ticket"
+  user: string
+  amount: string | null
+  time: string
+  icon: keyof typeof import("lucide-react") // Use keyof typeof to correctly type Lucide icons
+  color: string
+}
+
+interface DashboardData {
+  success: boolean
+  stats: {
+    totalUsers: Stat
+    activeLoans: Stat
+    totalDisbursed: Stat
+    approvalRate: Stat
+  }
+  recentActivity: RecentActivityItem[]
+}
+
 
 const iconMap = {
   Users,
@@ -30,7 +60,7 @@ const iconMap = {
 }
 
 export default function AdminHome() {
-  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -38,14 +68,21 @@ export default function AdminHome() {
     const fetchDashboardData = async () => {
       try {
         const response = await axios.get("/api/admin/dashboard")
+        console.log(response.data)
         setDashboardData(response.data)
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to fetch dashboard data")
+      } catch (err: unknown) {
+        // Type 'unknown' is safer than 'any'
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || "Failed to fetch dashboard data")
+        } else if (err instanceof Error) {
+          setError(err.message || "Failed to fetch dashboard data")
+        } else {
+          setError("An unexpected error occurred")
+        }
       } finally {
         setLoading(false)
       }
     }
-
     fetchDashboardData()
   }, [])
 
@@ -56,7 +93,6 @@ export default function AdminHome() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome back, Admin</h1>
           <p className="text-gray-600 dark:text-gray-400">Loading dashboard data...</p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
@@ -88,18 +124,25 @@ export default function AdminHome() {
     )
   }
 
+  // Ensure dashboardData is not null before destructuring
+  if (!dashboardData) {
+    return null // Or a fallback UI if data is unexpectedly null after loading/error checks
+  }
+
   const { stats, recentActivity } = dashboardData
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome back, Admin</h1>
-        <p className="text-gray-600 dark:text-gray-400">Here's what's happening with your loan platform today.</p>
+        <p className="text-gray-600 dark:text-gray-400">
+          Here&apos;s what&apos;s happening with your loan platform today.
+        </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {Object.entries(stats).map(([key, stat]: [string, any], index) => {
+        {Object.entries(stats).map(([key, stat]: [string, Stat], index) => {
           const IconComponent = iconMap[stat.icon as keyof typeof iconMap]
           return (
             <Card key={index} className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
@@ -116,9 +159,7 @@ export default function AdminHome() {
                             : "Approval Rate"}
                     </p>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-                    <Badge variant="secondary" className="mt-1 bg-green-100 text-green-700">
-                      {stat.change} from last month
-                    </Badge>
+                    <Badge className={`mt-1 ${stat.bgColor} ${stat.color}`}>{stat.change} from last month</Badge>
                   </div>
                   <div className={`p-3 rounded-full ${stat.bgColor} ${stat.color}`}>
                     <IconComponent className="h-6 w-6" />
@@ -139,7 +180,7 @@ export default function AdminHome() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivity.map((activity: any, index: number) => {
+              {recentActivity.map((activity: RecentActivityItem, index: number) => {
                 const IconComponent = iconMap[activity.icon as keyof typeof iconMap]
                 return (
                   <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
