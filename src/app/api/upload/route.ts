@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { v2 as cloudinary } from "cloudinary"
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary" // Import UploadApiResponse type
 
 // Configure Cloudinary
 cloudinary.config({
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       const buffer = Buffer.from(arrayBuffer)
 
       // Upload to Cloudinary
-      const result = await new Promise((resolve, reject) => {
+      const result: UploadApiResponse = await new Promise((resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
             {
@@ -36,14 +36,17 @@ export async function POST(request: Request) {
                 console.error("Cloudinary upload error:", error)
                 return reject(error)
               }
+              if (!result) {
+                return reject(new Error("Cloudinary upload did not return a result."))
+              }
               resolve(result)
             },
           )
           .end(buffer)
       })
 
-      if (result && (result as any).secure_url) {
-        uploadedUrls.push((result as any).secure_url)
+      if (result && result.secure_url) {
+        uploadedUrls.push(result.secure_url)
       } else {
         console.error("Cloudinary upload did not return a secure_url:", result)
         return NextResponse.json(

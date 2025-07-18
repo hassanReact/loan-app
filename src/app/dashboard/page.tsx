@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import axios from "@/lib/axios"
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from "@/components/ui/card"
+import axios from "@/lib/axios" // Import isAxiosError
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-
 import {
   CreditCard,
   FileText,
@@ -20,8 +17,9 @@ import {
   CheckCircle,
   ArrowRight,
   XCircle,
-  LucideIcon,
+  type LucideIcon,
 } from "lucide-react"
+import { isAxiosError } from "axios"
 
 const quickActions = [
   {
@@ -95,13 +93,19 @@ export default function DashboardHome() {
       try {
         const response = await axios.get("/api/user/dashboard")
         setDashboardData(response.data)
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to fetch dashboard data")
+      } catch (err: unknown) {
+        // Type 'unknown' is safer than 'any'
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || "Failed to fetch dashboard data")
+        } else if (err instanceof Error) {
+          setError(err.message || "Failed to fetch dashboard data")
+        } else {
+          setError("An unexpected error occurred while fetching dashboard data")
+        }
       } finally {
         setLoading(false)
       }
     }
-
     fetchDashboardData()
   }, [])
 
@@ -112,7 +116,6 @@ export default function DashboardHome() {
           <h1 className="text-3xl font-bold mb-2">Welcome back!</h1>
           <p className="text-blue-100 text-lg">Loading your dashboard...</p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">

@@ -33,7 +33,6 @@ export function FileUploader({
     if (event.target.files) {
       const newFiles = Array.from(event.target.files)
       const totalFiles = currentFilesCount + newFiles.length
-
       if (totalFiles > maxFiles) {
         setError(
           `You can only upload a maximum of ${maxFiles} files. You have selected ${newFiles.length} new files, but already have ${currentFilesCount}.`,
@@ -53,7 +52,6 @@ export function FileUploader({
       setError("Please select files to upload.")
       return
     }
-
     setUploading(true)
     setUploadProgress(0)
     setError(null)
@@ -82,9 +80,14 @@ export function FileUploader({
         fileInputRef.current.value = "" // Reset file input
       }
       setUploadProgress(100) // Set to 100% on success
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // Changed 'any' to 'unknown'
       console.error("Upload error:", err)
-      setError(err.message || "An unexpected error occurred during upload.")
+      if (err instanceof Error) {
+        setError(err.message || "An unexpected error occurred during upload.")
+      } else {
+        setError("An unexpected error occurred during upload.")
+      }
       setUploadProgress(0)
     } finally {
       setUploading(false)
@@ -110,7 +113,6 @@ export function FileUploader({
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
-
       {selectedFiles.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Selected Files:</p>
@@ -124,9 +126,7 @@ export function FileUploader({
           </ul>
         </div>
       )}
-
       <Progress value={progressValue} className="w-full" />
-
       <Button
         onClick={handleUpload}
         disabled={uploading || selectedFiles.length === 0 || disabled || currentFilesCount >= maxFiles}
@@ -144,7 +144,6 @@ export function FileUploader({
           </>
         )}
       </Button>
-
       {currentFilesCount > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Uploaded Documents:</p>

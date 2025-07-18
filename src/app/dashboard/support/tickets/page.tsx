@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HelpCircle, MessageSquare, Calendar, Plus, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react"
+import { isAxiosError } from "axios"
 
 interface Sender {
   _id: string
@@ -38,7 +39,7 @@ interface Ticket {
 
 
 export default function UserSupportTicketsPage() {
-const [tickets, setTickets] = useState<Ticket[]>([])
+  const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -52,13 +53,19 @@ const [tickets, setTickets] = useState<Ticket[]>([])
         } else {
           setError(res.data.message || "Failed to load tickets")
         }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load support tickets")
+      } catch (err: unknown) {
+        // Type 'unknown' is safer than 'any'
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || "Failed to load support tickets")
+        } else if (err instanceof Error) {
+          setError(err.message || "Failed to load support tickets")
+        } else {
+          setError("An unexpected error occurred while loading support tickets")
+        }
       } finally {
         setLoading(false)
       }
     }
-
     fetchTickets()
   }, [])
 
@@ -85,7 +92,6 @@ const [tickets, setTickets] = useState<Ticket[]>([])
             <p className="text-gray-600 dark:text-gray-400">View and track your support requests</p>
           </div>
         </div>
-
         <div className="grid gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="border-0 shadow-lg">
@@ -120,20 +126,20 @@ const [tickets, setTickets] = useState<Ticket[]>([])
           </Link>
         </Button>
       </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
       {tickets.length === 0 && !loading ? (
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="p-12 text-center">
             <HelpCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No support tickets found</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">You haven't submitted any support requests yet.</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              You haven&apos;t submitted any support requests yet.
+            </p>
             <Button asChild>
               <Link href="/dashboard/support">Create Your First Ticket</Link>
             </Button>
@@ -156,9 +162,7 @@ const [tickets, setTickets] = useState<Ticket[]>([])
                         <span className="capitalize">{ticket.status}</span>
                       </Badge>
                     </div>
-
                     <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{ticket.message}</p>
-
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span className="flex items-center space-x-1">
                         <Calendar className="h-4 w-4" />
@@ -172,7 +176,6 @@ const [tickets, setTickets] = useState<Ticket[]>([])
                       )}
                     </div>
                   </div>
-
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/dashboard/support/tickets/${ticket._id}`}>
                       <Eye className="mr-2 h-4 w-4" />

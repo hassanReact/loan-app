@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import axios from "@/lib/axios"
 import { Button } from "@/components/ui/button"
@@ -12,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, HelpCircle, Send, CheckCircle, AlertCircle, MessageSquare, Eye } from "lucide-react"
+import { isAxiosError } from "axios"
 
 export default function SupportPage() {
-  const router = useRouter()
+  // Removed 'router' as it's not used
   const [subject, setSubject] = useState("")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -30,14 +30,21 @@ export default function SupportPage() {
     try {
       const res = await axios.post("/api/support/create", { subject, message })
       if (res.data) {
-        setSuccess("Support request submitted successfully! We'll get back to you soon.")
+        setSuccess("Support request submitted successfully! We&apos;ll get back to you soon.") // Escaped apostrophe
         setSubject("")
         setMessage("")
       } else {
         setError(res.data.message || "Submission failed")
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Submission failed")
+    } catch (err: unknown) {
+      // Type 'unknown' is safer than 'any'
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || "Submission failed")
+      } else if (err instanceof Error) {
+        setError(err.message || "Submission failed")
+      } else {
+        setError("An unexpected error occurred during submission")
+      }
     } finally {
       setLoading(false)
     }
@@ -49,7 +56,6 @@ export default function SupportPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Contact Support</h1>
         <p className="text-gray-600 dark:text-gray-400">Get help with your loan application or account</p>
       </div>
-
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
@@ -66,7 +72,6 @@ export default function SupportPage() {
             </p>
           </CardContent>
         </Card>
-
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -88,14 +93,13 @@ export default function SupportPage() {
           </CardContent>
         </Card>
       </div>
-
       <Card className="border-0 shadow-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <HelpCircle className="h-5 w-5 text-blue-600" />
             <span>Submit Support Request</span>
           </CardTitle>
-          <CardDescription>Describe your issue and we'll get back to you as soon as possible</CardDescription>
+          <CardDescription>Describe your issue and we&apos;ll get back to you as soon as possible</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -105,14 +109,12 @@ export default function SupportPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
             {success && (
               <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800 dark:text-green-200">{success}</AlertDescription>
               </Alert>
             )}
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Subject</label>
               <Input
@@ -123,7 +125,6 @@ export default function SupportPage() {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
               <Textarea
@@ -134,7 +135,6 @@ export default function SupportPage() {
                 rows={6}
               />
             </div>
-
             <Button type="submit" disabled={loading} className="w-full" size="lg">
               {loading ? (
                 <>
@@ -151,7 +151,6 @@ export default function SupportPage() {
           </form>
         </CardContent>
       </Card>
-
       {/* FAQ Section */}
       <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>

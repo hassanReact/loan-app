@@ -1,9 +1,10 @@
 import { connectDB } from "@/lib/db"
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { Loan } from "@/models/Loan"
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB()
     const { id } = await params
@@ -18,41 +19,45 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  await connectDB()
-  const { id } = params
-  const { status } = await request.json()
-
-  const token = request.cookies.get("token")?.value
-  if (!token) {
-    return NextResponse.json({ success: false, message: "Authentication required" }, { status: 401 })
-  }
-
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await connectDB()
+
+    const { id } = await params // Await the params to destructure the id
+
+    const cookieStore = await cookies()
+    const token = cookieStore.get("token")?.value
+
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { role: string }
+
     if (decoded.role !== "admin") {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const loan = await Loan.findById(id)
+    const { status } = await request.json()
 
-    if (!loan) {
-      return NextResponse.json({ success: false, message: "Loan not found" }, { status: 404 })
+    if (!status || !["approved", "rejected"].includes(status)) {
+      return NextResponse.json({ message: "Invalid status provided" }, { status: 400 })
     }
 
-    loan.status = status
-
-    if (status === "repaid") {
-      loan.repaidAt = new Date()
-    }
-    await loan.save()
-
-    return NextResponse.json({ success: true, message: `Loan status updated to ${status}`, loan })
-  } catch (error: unknown) {
-    console.error("Error updating loan status:", error)
-    return NextResponse.json(
-      { success: false, message: (error as Error).message || "Failed to update loan status" },
-      { status: 500 },
+    const updatedLoan = await Loan.findByIdAndUpdate(id, { status, updatedAt: new Date() }, { new: true }).populate(
+      "user",
+      "name email",
     )
+
+    if (!updatedLoan) {
+      return NextResponse.json({ message: "Loan not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(
+      { success: true, message: "Loan status updated successfully", loan: updatedLoan },
+      { status: 200 },
+    )
+  } catch (error) {
+    console.error("Admin update loan error:", error)
+    return NextResponse.json({ message: "Server Error" }, { status: 500 })
   }
 }
+

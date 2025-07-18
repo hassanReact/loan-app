@@ -1,7 +1,9 @@
 "use client"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
+import Image from "next/image" // Import Next.js Image component
 
 interface DocumentViewerModalProps {
   isOpen: boolean
@@ -20,7 +22,8 @@ export function DocumentViewerModal({ isOpen, onClose, documentUrl }: DocumentVi
       const urlObj = new URL(url)
       const pathSegments = urlObj.pathname.split("/")
       return pathSegments[pathSegments.length - 1]
-    } catch (e) {
+    } catch {
+      // Removed _e as it's not used
       return "Document" // Fallback for invalid URLs
     }
   }
@@ -44,11 +47,16 @@ export function DocumentViewerModal({ isOpen, onClose, documentUrl }: DocumentVi
           {isPdf ? (
             <iframe src={documentUrl} className="w-full h-full border-0 rounded-md" title="Document Viewer" />
           ) : isImage ? (
-            <div className="flex items-center justify-center w-full h-full">
-              <img
+            <div className="relative flex items-center justify-center w-full h-full">
+              {" "}
+              {/* Added relative positioning for Image fill */}
+              <Image
                 src={documentUrl || "/placeholder.svg"}
-                alt="Document"
-                className="max-w-full max-h-full object-contain rounded-md"
+                alt={`Document: ${getFileName(documentUrl)}`} // More descriptive alt text
+                fill // Use fill to make it responsive within the parent
+                style={{ objectFit: "contain" }} // Use style prop for objectFit with fill
+                className="rounded-md"
+                unoptimized // Use unoptimized for external, dynamic URLs
               />
             </div>
           ) : (

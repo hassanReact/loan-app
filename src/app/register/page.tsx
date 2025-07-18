@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, User, Mail, Lock, Zap } from "lucide-react"
 import Link from "next/link"
+import { isAxiosError } from "axios"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -26,15 +27,21 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
-
     try {
       await axios.post("api/auth/register", {
         ...form,
         role: "user",
       })
       router.push("/login")
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Registration failed")
+    } catch (err: unknown) {
+      // Type 'unknown' is safer than 'any'
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || "Registration failed")
+      } else if (err instanceof Error) {
+        setError(err.message || "Registration failed")
+      } else {
+        setError("An unexpected error occurred during registration")
+      }
     } finally {
       setLoading(false)
     }
@@ -53,7 +60,6 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h1>
           <p className="text-gray-600 dark:text-gray-400">Join thousands of satisfied customers</p>
         </div>
-
         <Card className="shadow-xl border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl text-center">Sign Up</CardTitle>
@@ -66,7 +72,6 @@ export default function RegisterPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
               <div className="space-y-2">
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -81,7 +86,6 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -96,7 +100,6 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -111,7 +114,6 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
@@ -123,7 +125,6 @@ export default function RegisterPage() {
                 )}
               </Button>
             </form>
-
             <div className="mt-6 text-center text-sm">
               <span className="text-gray-600 dark:text-gray-400">Already have an account? </span>
               <Link href="/login" className="text-blue-600 hover:underline font-medium">

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react"
+import { isAxiosError } from "axios"
 
 export default function ProfilePage() {
   const [form, setForm] = useState({
@@ -57,7 +58,6 @@ export default function ProfilePage() {
         isValid = false
       }
     }
-
     return isValid
   }
 
@@ -71,13 +71,19 @@ export default function ProfilePage() {
     }
 
     setLoading(true)
-
     try {
       const res = await axios.put("/api/user/update", form)
       setMessage(res.data.message)
       setForm({ ...form, currentPassword: "", newPassword: "" })
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to update profile")
+    } catch (err: unknown) {
+      // Type 'unknown' is safer than 'any'
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to update profile")
+      } else if (err instanceof Error) {
+        setError(err.message || "Failed to update profile")
+      } else {
+        setError("An unexpected error occurred while updating profile")
+      }
     } finally {
       setLoading(false)
     }
@@ -89,7 +95,6 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Profile Settings</h1>
         <p className="text-gray-600 dark:text-gray-400">Manage your account information and security</p>
       </div>
-
       <Card className="border-0 shadow-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -106,17 +111,14 @@ export default function ProfilePage() {
                 <AlertDescription className="text-green-800 dark:text-green-200">{message}</AlertDescription>
               </Alert>
             )}
-
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Personal Information</h3>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
                 <div className="relative">
@@ -132,7 +134,6 @@ export default function ProfilePage() {
                 </div>
                 {nameError && <p className="text-sm text-red-500 mt-1">{nameError}</p>}
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
                 <div className="relative">
@@ -149,12 +150,9 @@ export default function ProfilePage() {
                 {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
               </div>
             </div>
-
             <Separator />
-
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Change Password</h3>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Current Password</label>
                 <div className="relative">
@@ -170,7 +168,6 @@ export default function ProfilePage() {
                 </div>
                 {currentPasswordError && <p className="text-sm text-red-500 mt-1">{currentPasswordError}</p>}
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
                 <div className="relative">
@@ -187,7 +184,6 @@ export default function ProfilePage() {
                 {newPasswordError && <p className="text-sm text-red-500 mt-1">{newPasswordError}</p>}
               </div>
             </div>
-
             <Button type="submit" disabled={loading} className="w-full" size="lg">
               {loading ? (
                 <>

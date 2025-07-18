@@ -1,5 +1,5 @@
 import { connectDB } from '@/lib/db';
-import { User, Support } from '@/models'; // Required for populate
+import { Support } from '@/models'; // Required for populate
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';

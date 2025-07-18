@@ -1,10 +1,33 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { connectDB } from "@/lib/db"
-import { User, Loan, Support } from "@/models"
+import { User, Loan } from "@/models"
 import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 
-export async function GET(request: NextRequest) {
+interface User {
+  _id: string
+  name: string
+  email: string
+}
+
+interface LoanType {
+  _id: string
+  user: User
+  amount: number
+  reason: string
+  documents: string[]
+  status: "repaid" | "approved" | "pending" | "rejected"
+  withdrawn: boolean
+  repaidAmount: number
+  createdAt: string
+  updatedAt: string
+  __v: number
+  repaidAt?: string
+}
+
+
+export async function GET() {
+  // Removed unused 'request: NextRequest' parameter
   try {
     await connectDB()
 
@@ -16,7 +39,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Authentication required" }, { status: 401 })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string } // Refined type from 'any'
     const userId = decoded.id
 
     // Get user details
@@ -55,7 +78,8 @@ export async function GET(request: NextRequest) {
     ]
 
     // Get recent activity (last 5 loan activities)
-    const recentActivity = userLoans.slice(0, 5).map((loan) => {
+    const recentActivity = userLoans.slice(0, 5).map((loan: LoanType) => {
+      // Used LoanType for the loan parameter
       let activityType = ""
       let description = ""
       let icon = "FileText"
@@ -90,11 +114,10 @@ export async function GET(request: NextRequest) {
           activityType = "Loan Activity"
           description = `Loan application for $${loan.amount?.toLocaleString()}`
       }
-
       return {
         type: activityType,
         description,
-        time: getTimeAgo(loan.updatedAt || loan.createdAt),
+        time: getTimeAgo(new Date(loan.updatedAt || loan.createdAt)),
         icon,
         color,
       }

@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, FileText, AlertCircle } from "lucide-react"
 import { FileUploader } from "@/app/components/File-Uploader"
+import { isAxiosError } from "axios"
 
 
 export default function ApplyLoanPage() {
@@ -36,7 +37,6 @@ export default function ApplyLoanPage() {
     setError("") // Clear general error
 
     const parsedAmount = Number.parseFloat(amount)
-
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setAmountError("Please enter a valid loan amount.")
       isValid = false
@@ -59,7 +59,6 @@ export default function ApplyLoanPage() {
       setError("Please upload exactly 5 documents.")
       isValid = false
     }
-
     return isValid
   }
 
@@ -80,8 +79,15 @@ export default function ApplyLoanPage() {
         documents,
       })
       router.push("/dashboard/loan/status")
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to apply")
+    } catch (err: unknown) {
+      // Type 'unknown' is safer than 'any'
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to apply")
+      } else if (err instanceof Error) {
+        setError(err.message || "Failed to apply")
+      } else {
+        setError("An unexpected error occurred while applying for the loan")
+      }
     } finally {
       setLoading(false)
     }
@@ -93,7 +99,6 @@ export default function ApplyLoanPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Apply for Loan</h1>
         <p className="text-gray-600 dark:text-gray-400">Fill out the form below to start your loan application</p>
       </div>
-
       <Card className="border-0 shadow-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -110,7 +115,6 @@ export default function ApplyLoanPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loan Amount (USD)</label>
               <Input
@@ -123,7 +127,6 @@ export default function ApplyLoanPage() {
               />
               {amountError && <p className="text-sm text-red-500 mt-1">{amountError}</p>}
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Purpose of Loan</label>
               <Textarea
@@ -135,7 +138,6 @@ export default function ApplyLoanPage() {
               />
               {reasonError && <p className="text-sm text-red-500 mt-1">{reasonError}</p>}
             </div>
-
             {/* Replace the old upload section with the new FileUploader */}
             <FileUploader
               onFilesUploaded={handleFilesUploaded}
@@ -143,7 +145,6 @@ export default function ApplyLoanPage() {
               currentFilesCount={documents.length}
               disabled={loading}
             />
-
             <Button type="submit" className="w-full" disabled={loading || documents.length !== 5} size="lg">
               {loading ? (
                 <>
