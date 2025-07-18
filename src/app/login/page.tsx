@@ -53,7 +53,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await axios.post("api/auth/login", form)
+      const res = await axios.post("/api/auth/login", form)
       const { token, userId, role } = res.data
 
       await fetch("/api/auth/session", {
